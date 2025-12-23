@@ -207,6 +207,8 @@ describe('FSD Plugin Tests', () => {
         ['absoluteWithinSlice']
       );
 
+      console.log();
+
       expect(results?.[0]?.fix?.text).toBe("'./file2'");
     });
 

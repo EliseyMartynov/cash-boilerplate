@@ -1,9 +1,17 @@
 // FSD слои и их правила импортов
-module.exports.FSD_LAYERS = {
+export interface LayerConfig {
+  allowed: string[];
+  message: string;
+}
+
+export interface FsdLayers {
+  [key: string]: LayerConfig;
+}
+
+export const FSD_LAYERS: FsdLayers = {
   app: {
     allowed: ['app', 'processes', 'pages', 'widgets', 'features', 'entities', 'shared'],
-    message:
-      'App layer can only import from app, processes, pages, widgets, features, entities, shared',
+    message: 'App layer can only import from app, processes, pages, widgets, features, entities, shared',
   },
   processes: {
     allowed: ['pages', 'widgets', 'features', 'entities', 'shared'],
@@ -32,13 +40,13 @@ module.exports.FSD_LAYERS = {
 };
 
 // Сегменты FSD (ui, model, lib, api и т.д.)
-module.exports.SEGMENTS = ['ui', 'model', 'lib', 'api', 'config', 'types'];
+export const SEGMENTS = ['ui', 'model', 'lib', 'api', 'config', 'types'];
 
-// НОВОЕ: Слои, которые не имеют слайсов
-module.exports.NON_SLICEABLE_LAYERS = ['app', 'shared'];
+// Слои, которые не имеют слайсов
+export const NON_SLICEABLE_LAYERS = ['app', 'shared'];
 
 // Алиасы для импортов
-module.exports.ALIAS_MAP = {
+export const ALIAS_MAP: Record<string, string> = {
   '@app': 'app',
   '@processes': 'processes',
   '@pages': 'pages',
@@ -48,4 +56,12 @@ module.exports.ALIAS_MAP = {
   '@shared': 'shared',
 };
 
-module.exports.DEFAULT_SRC_PATH = '/src/';
+// Типы конфигурации
+export interface PluginOptions {
+  srcPath?: string;
+  aliasPrefix?: string;
+  layers?: FsdLayers;
+  nonSliceableLayers?: string[];
+  segments?: string[];
+  aliasMap?: Record<string, string>;
+}
