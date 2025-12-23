@@ -8,7 +8,7 @@ const { getSliceRoot } = require('./get-slice-root');
  * @entities/user/model/types → ../model/types
  * @entities/test2/asd → ./asd (если в той же директории)
  */
-function convertToRelativePath(absoluteImport, currentFilePath) {
+function convertToRelativePath(absoluteImport, currentFilePath, srcPath) {
   if (!absoluteImport.startsWith('@')) return absoluteImport;
 
   // Извлекаем layer и slice из импорта
@@ -16,7 +16,7 @@ function convertToRelativePath(absoluteImport, currentFilePath) {
   if (!importInfo) return absoluteImport;
 
   // Извлекаем layer и slice из текущего файла
-  const currentInfo = extractLayerAndSliceFromPath(currentFilePath);
+  const currentInfo = extractLayerAndSliceFromPath(currentFilePath, srcPath);
   if (!currentInfo) return absoluteImport;
 
   // Проверяем, что это действительно внутри одного слайса
@@ -44,7 +44,7 @@ function convertToRelativePath(absoluteImport, currentFilePath) {
   const currentDir = path.dirname(currentFilePath);
 
   // Получаем корень слайса
-  const sliceRoot = getSliceRoot(currentFilePath);
+  const sliceRoot = getSliceRoot(currentFilePath, srcPath);
   if (!sliceRoot) return absoluteImport;
 
   // Строим путь к импортируемому файлу ВНУТРИ слайса

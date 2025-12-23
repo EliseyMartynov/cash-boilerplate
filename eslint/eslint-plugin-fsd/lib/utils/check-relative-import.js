@@ -6,7 +6,7 @@ const { normalizePath } = require('./path-utils');
 /**
  * Проверяет относительные импорты
  */
-function checkRelativeImport(importPath, currentFilePath) {
+function checkRelativeImport(importPath, currentFilePath, srcPath) {
   if (!importPath.startsWith('.')) {
     return { isRelative: false };
   }
@@ -16,10 +16,10 @@ function checkRelativeImport(importPath, currentFilePath) {
   const importedFullPath = path.resolve(currentDir, importPath);
 
   // Определяем слои
-  const currentLayer = detectLayerByPath(currentFilePath);
-  const importedLayer = detectLayerByPath(normalizePath(importedFullPath));
+  const currentLayer = detectLayerByPath(currentFilePath, srcPath);
+  const importedLayer = detectLayerByPath(normalizePath(importedFullPath), srcPath);
 
-  const sameSlice = isSameSlice(currentFilePath, importedFullPath);
+  const sameSlice = isSameSlice(currentFilePath, importedFullPath, srcPath);
   const nonSliceableAndSameLayer =
     NON_SLICEABLE_LAYERS.includes(currentLayer) && currentLayer === importedLayer;
 

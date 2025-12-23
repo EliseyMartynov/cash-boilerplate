@@ -47,3 +47,5 @@ module.exports.ALIAS_MAP = {
   '@entities': 'entities',
   '@shared': 'shared',
 };
+
+module.exports.DEFAULT_SRC_PATH = '/src/';

@@ -4,19 +4,14 @@ const { isSameSlice } = require('./layer-detector');
  * Проверяет, является ли импорт через Public API
  * Для импортов МЕЖДУ слайсами
  */
-function isPublicApiImport(importPath, currentFilePath, importedLayer) {
-  // 1. Если это shared слой - особые правила
-  if (importedLayer === 'shared') {
-    return true;
-  }
-
-  // 2. Проверяем, в одном ли слайсе текущий файл и импорт
-  const isSameSliceImport = isSameSlice(importPath, currentFilePath);
+function isPublicApiImport(importPath, currentFilePath, importedLayer, srcPath) {
+  // Проверяем, в одном ли слайсе текущий файл и импорт
+  const isSameSliceImport = isSameSlice(importPath, currentFilePath, srcPath);
   if (isSameSliceImport) {
     return true; // Внутри слайса - не проверяем Public API
   }
 
-  // 3. Для импортов МЕЖДУ слайсами проверяем Public API
+  // Для импортов МЕЖДУ слайсами проверяем Public API
   if (importPath.startsWith('@')) {
     const match = importPath.match(/^@\w+\/(.+)$/);
     if (match) {

@@ -1,4 +1,4 @@
-const { FSD_LAYERS } = require('../constants');
+const { FSD_LAYERS, DEFAULT_SRC_PATH } = require('../constants');
 const { normalizePath } = require('../utils/path-utils');
 const {
   detectLayerByPath,
@@ -21,7 +21,13 @@ module.exports = {
     schema: [
       {
         type: 'object',
-        properties: {},
+        properties: {
+          srcPath: {
+            type: 'string',
+            description: 'src directory path from root',
+            default: DEFAULT_SRC_PATH,
+          },
+        },
         additionalProperties: false,
       },
     ],
@@ -38,11 +44,16 @@ module.exports = {
   },
 
   create(context) {
+    const options = context.options[0] || {};
+    const config = {
+      srcPath: options.srcPath || DEFAULT_SRC_PATH,
+    };
+
     const currentFilePath = normalizePath(context.getFilename());
-    const currentLayer = detectLayerByPath(currentFilePath);
+    const currentLayer = detectLayerByPath(currentFilePath, config.srcPath);
 
     // Игнорируем файлы вне src или исключенные паттерны
-    if (!currentFilePath.includes('/src/')) {
+    if (!currentFilePath.includes(config.srcPath)) {
       return {};
     }
 
@@ -53,84 +64,104 @@ module.exports = {
 
     const allowedLayers = FSD_LAYERS[currentLayer]?.allowed || [];
 
-    return {
-      ImportDeclaration(node) {
-        const importPath = node.source.value;
+    const validateImport = (node) => {
+      const importPath = node.source.value;
 
-        // Проверяем относительные импорты
-        if (importPath.startsWith('.')) {
-          const relativeCheck = checkRelativeImport(importPath, currentFilePath);
+      // Проверяем относительные импорты
+      if (importPath.startsWith('.')) {
+        const relativeCheck = checkRelativeImport(importPath, currentFilePath, config.srcPath);
 
-          if (!relativeCheck.isAllowed) {
-            context.report({
-              node,
-              messageId: 'relativeImportViolation',
-              data: {
-                importPath,
-              },
-            });
-          }
-          return;
-        }
-
-        // Игнорируем внешние зависимости
-        if (!importPath.startsWith('@') && !importPath.startsWith('.')) {
-          return;
-        }
-
-        // Определяем слой импорта
-        const importedLayer = detectLayerByImport(importPath);
-
-        if (!importedLayer || importedLayer === 'external') {
-          return;
-        }
-
-        const isSameSlice = isSameSliceFn(importPath, currentFilePath);
-
-        // автофикс если в одном слайсе импортируется абсолютный
-        if (isSameSlice) {
-          const relativePath = convertToRelativePath(importPath, currentFilePath);
-
+        if (!relativeCheck.isAllowed) {
           context.report({
             node,
-            messageId: 'absoluteWithinSlice',
-            data: {
-              absolutePath: importPath,
-              relativePath: relativePath,
-            },
-            fix(fixer) {
-              return fixer.replaceText(node.source, `'${relativePath}'`);
-            },
-          });
-          return;
-        }
-
-        // Проверяем Public API ТОЛЬКО для импортов МЕЖДУ слайсами
-        // Проверяем, не внутри ли одного слайса
-        if (!isPublicApiImport(importPath, currentFilePath, importedLayer) && !isSameSlice) {
-          context.report({
-            node,
-            messageId: 'publicApiViolation',
+            messageId: 'relativeImportViolation',
             data: {
               importPath,
             },
           });
         }
+        return;
+      }
 
-        // Проверяем правило слоев
-        // Проверяем, не внутри ли одного слайса
-        if (!allowedLayers.includes(importedLayer) && !isSameSlice) {
-          const layerRule = FSD_LAYERS[currentLayer];
+      // Игнорируем внешние зависимости
+      if (!importPath.startsWith('@') && !importPath.startsWith('.')) {
+        return;
+      }
 
-          context.report({
-            node,
-            messageId: 'invalidImport',
-            data: {
-              currentLayer,
-              importedLayer,
-              message: layerRule?.message || `Allowed layers: ${allowedLayers.join(', ')}`,
-            },
-          });
+      // Определяем слой импорта
+      const importedLayer = detectLayerByImport(importPath);
+
+      if (!importedLayer || importedLayer === 'external') {
+        return;
+      }
+
+      const validLayers = Object.keys(FSD_LAYERS);
+      if (!validLayers.includes(importedLayer)) {
+        return;
+      }
+
+      const isSameSlice = isSameSliceFn(importPath, currentFilePath, config.srcPath);
+
+      // автофикс если в одном слайсе импортируется абсолютный
+      if (isSameSlice) {
+        const relativePath = convertToRelativePath(importPath, currentFilePath, config.srcPath);
+
+        context.report({
+          node,
+          messageId: 'absoluteWithinSlice',
+          data: {
+            absolutePath: importPath,
+            relativePath: relativePath,
+          },
+          fix(fixer) {
+            return fixer.replaceText(node.source, `'${relativePath}'`);
+          },
+        });
+        return;
+      }
+
+      // Проверяем Public API ТОЛЬКО для импортов МЕЖДУ слайсами
+      // Проверяем, не внутри ли одного слайса
+      if (
+        !isPublicApiImport(importPath, currentFilePath, importedLayer, config.srcPath) &&
+        !isSameSlice
+      ) {
+        context.report({
+          node,
+          messageId: 'publicApiViolation',
+          data: {
+            importPath,
+          },
+        });
+      }
+
+      // Проверяем правило слоев
+      // Проверяем, не внутри ли одного слайса
+      if (!allowedLayers.includes(importedLayer) && !isSameSlice) {
+        const layerRule = FSD_LAYERS[currentLayer];
+
+        context.report({
+          node,
+          messageId: 'invalidImport',
+          data: {
+            currentLayer,
+            importedLayer,
+            message: layerRule?.message || `Allowed layers: ${allowedLayers.join(', ')}`,
+          },
+        });
+      }
+    };
+
+    return {
+      ImportDeclaration(node) {
+        validateImport(node);
+      },
+      // Для динамических импортов
+      ImportExpression(node) {
+        if (node.source) {
+          if (node.source.type === 'Literal' && typeof node.source.value === 'string') {
+            validateImport(node);
+          }
         }
       },
     };

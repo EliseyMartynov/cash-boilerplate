@@ -4,21 +4,22 @@ const normalizePath = (path) => path.replace(/\\/g, '/');
  * Извлекает слой и слайс из физического пути
  * C:/project/src/entities/user/ui/Component.tsx → { layer: 'entities', slice: 'user' }
  */
-function extractLayerAndSliceFromPath(filePath) {
+function extractLayerAndSliceFromPath(filePath, srcPath) {
   const normalized = filePath.replace(/\\/g, '/');
-  const srcIndex = normalized.indexOf('/src/');
+  const normalizedSrcPath = srcPath.replace(/\\/g, '/');
+  const srcIndex = normalized.indexOf(normalizedSrcPath);
 
   if (srcIndex === -1) return null;
 
-  const afterSrc = normalized.substring(srcIndex + 5); // +5 для '/src/'
+  const afterSrc = normalized.substring(srcIndex + normalizedSrcPath.length);
   const parts = afterSrc.split('/');
 
   if (parts.length < 2) return null;
 
   return {
-    layer: parts[0], // 'entities', 'app', 'features', etc.
-    slice: parts[1], // 'user', 'test', 'auth', etc.
-    fullPath: parts[0] + '/' + parts[1], // 'entities/user'
+    layer: parts[0],
+    slice: parts[1],
+    fullPath: parts[0] + '/' + parts[1],
   };
 }
 

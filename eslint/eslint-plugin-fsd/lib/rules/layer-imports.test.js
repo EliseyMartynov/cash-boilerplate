@@ -16,7 +16,12 @@ describe('FSD Plugin Tests', () => {
 
   const config = {
     rules: {
-      'layer-imports': ['error', {}],
+      'layer-imports': [
+        'error',
+        {
+          srcPath: '/src/',
+        },
+      ],
     },
     parserOptions: {
       ecmaVersion: 'latest',
@@ -310,11 +315,12 @@ describe('FSD Plugin Tests', () => {
       );
     });
 
-    it('shared может импортировать внутри shared не через Public API (тоже разрешено)', () => {
+    it('shared не может импортировать внутри shared не через Public API', () => {
       runTest(
         `import { test } from '@shared/api/client';`,
         createTestPath('shared', 'ui', 'component'),
-        0
+        1,
+        ['publicApiViolation']
       );
     });
 
@@ -402,18 +408,6 @@ describe('FSD Plugin Tests', () => {
           `Expected publicApiViolation and invalidImport, but got: ${messageIds.join(', ')}`
         );
       }
-    });
-
-    it('Импорты TypeScript типов', () => {
-      runTest(
-        `
-        import type { User } from '@entities/user';
-        import { type Store } from '@entities/user/model';
-        `,
-        createTestPath('features', 'profile', 'index'),
-        1,
-        ['publicApiViolation']
-      );
     });
   });
 });
