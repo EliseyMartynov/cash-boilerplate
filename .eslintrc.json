@@ -11,7 +11,9 @@
 
     "plugin:react/recommended",
     "plugin:react/jsx-runtime",
-    "plugin:react-hooks/recommended"
+    "plugin:react-hooks/recommended",
+
+    "plugin:fsd-essentials/recommended"
   ],
   "ignorePatterns": ["dist", "*.cjs", "eslint"],
   "parser": "@typescript-eslint/parser",
@@ -19,13 +21,12 @@
     "ecmaVersion": 2020,
     "sourceType": "module"
   },
-  "plugins": ["react-refresh", "unused-imports", "fsd"],
+  "plugins": ["react-refresh", "unused-imports", "fsd-essentials"],
   "rules": {
     "react-refresh/only-export-components": [
       "warn",
       { "allowConstantExport": true }
     ],
-    "unused-imports/no-unused-imports": "error",
-    "fsd/layer-imports": "error"
+    "unused-imports/no-unused-imports": "error"
   }
 }
